@@ -1,165 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Basic WebXR Scene - Quest 3</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background-color: #87ceeb; /* fallback blue sky */
-    }
-    #info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-family: sans-serif;
-      z-index: 1;
-    }
-  </style>
-</head>
-<body>
-  <div id="info">Use thumbstick on Quest 3 controllers to move around</div>
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.module.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/controls/OrbitControls.js';
-    import { XRControllerModelFactory } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/webxr/XRControllerModelFactory.js';
-
-    let camera, scene, renderer;
-    let controller1, controller2;
-    let controllerGrip1, controllerGrip2;
-    let moveSpeed = 0.05;
-    let velocity = new THREE.Vector3();
-    let tempMatrix = new THREE.Matrix4();
-
-    init();
-    animate();
-
-    function init() {
-      // Renderer
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
-
-      // Scene & Camera
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x87ceeb); // blue sky
-
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-      // Green ground plane 20m x 20m
-      const groundGeometry = new THREE.PlaneGeometry(20, 20);
-      const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228822 });
-      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-      ground.rotation.x = -Math.PI / 2;
-      ground.receiveShadow = true;
-      scene.add(ground);
-
-      // Grey box 2m tall
-      const boxGeometry = new THREE.BoxGeometry(1, 2, 1);
-      const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
-      const box = new THREE.Mesh(boxGeometry, boxMaterial);
-      box.position.set(0, 1, -3); // 1m above ground (half height), 3m in front
-      box.castShadow = true;
-      scene.add(box);
-
-      // Lighting
-      const light = new THREE.HemisphereLight(0xffffff, 0x444444);
-      light.position.set(0, 20, 0);
-      scene.add(light);
-
-      const directionalLight = new THREE.DirectionalLight(0xffffff);
-      directionalLight.position.set(5, 10, 7.5);
-      directionalLight.castShadow = true;
-      scene.add(directionalLight);
-
-      // Controllers
-      controller1 = renderer.xr.getController(0);
-      scene.add(controller1);
-
-      controller2 = renderer.xr.getController(1);
-      scene.add(controller2);
-
-      const controllerModelFactory = new XRControllerModelFactory();
-
-      controllerGrip1 = renderer.xr.getControllerGrip(0);
-      controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
-      scene.add(controllerGrip1);
-
-      controllerGrip2 = renderer.xr.getControllerGrip(1);
-      controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
-      scene.add(controllerGrip2);
-
-      // Optional: OrbitControls for desktop testing
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.target.set(0, 1.6, 0);
-      controls.update();
-
-      window.addEventListener('resize', onWindowResize);
-
-      // Start XR session button
-      document.body.appendChild( VRButton.createButton( renderer ) );
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function animate() {
-      renderer.setAnimationLoop(render);
-    }
-
-    function render() {
-      handleMovement();
-      renderer.render(scene, camera);
-    }
-
-    function handleMovement() {
-      // Get the input source gamepads (for Quest 3 thumbsticks)
-      const session = renderer.xr.getSession();
-      if (!session) return;
-
-      const inputSources = session.inputSources;
-      for (const source of inputSources) {
-        if (!source.gamepad) continue;
-
-        // Thumbstick axes for movement
-        const axes = source.gamepad.axes;
-        if (axes.length >= 2) {
-          // axes[2] and axes[3] could be the second thumbstick,
-          // but usually left thumbstick is axes[0] and axes[1].
-          // We'll use axes[0], axes[1].
-
-          const x = axes[0]; // left/right
-          const y = axes[1]; // forward/backward
-
-          // Get the viewer direction to move relative to where the user looks
-          const xrCamera = renderer.xr.getCamera(camera);
-          const direction = new THREE.Vector3();
-          xrCamera.getWorldDirection(direction);
-          direction.y = 0; // keep movement horizontal
-          direction.normalize();
-
-          const right = new THREE.Vector3();
-          right.crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
-
-          velocity.set(0, 0, 0);
-          velocity.addScaledVector(direction, -y * moveSpeed);
-          velocity.addScaledVector(right, -x * moveSpeed);
-
-          camera.position.add(velocity);
-        }
+  <head>
+    <meta charset="UTF-8" />
+    <title>WebXR Quest 3 Scene</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #87ceeb;
       }
-    }
+      #info {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: sans-serif;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">Use left thumbstick on Quest 3 to move</div>
+    <script type="module">
+      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.module.js';
+      import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/webxr/VRButton.js';
+      import { XRControllerModelFactory } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/webxr/XRControllerModelFactory.js';
 
-    // VRButton helper from three.js to add a "Enter VR" button
-    import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/webxr/VRButton.js';
+      let camera, scene, renderer, player;
+      let controllerGrip1, controllerGrip2;
 
-  </script>
-</body>
-</html>
+      const moveSpeed = 0.05;
+      const direction = new THREE.Vector3();
+      const right = new THREE.Vector3();
+      const velocity = new THREE.Vector3();
+
+      init();
+      animate();
+
+      function init() {
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // blue sky
+
+        // Player rig (so we can move it in VR)
+        player = new THREE.Group();
+        scene.add(player);
+
+        // Camera
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        player.add(camera);
+
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(20, 20);
+        const groundMat = new THREE.MeshStandardMate
